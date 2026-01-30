@@ -187,6 +187,18 @@ const GameRoomPage = () => {
   }
 
   const copyInviteLink = () => {
+    // We want the link to be able to auto-join.
+    // The link should be: /lobby?mode=join&code=ROOMCODE
+    // But we are currently on /game/ROOMCODE
+    // If we just copy current URL, it goes to GameRoomPage.
+    // Does GameRoomPage handle "guest who is not joined"?
+    // It checks showJoinModal = !state?.playerName.
+    // If I open /game/ABC directly, state is undefined. So showJoinModal is true.
+    // It shows "Join Room: ABC" and name input.
+    // handleManualJoin emits "join_room".
+    // So actually, the current URL IS ALREADY A VALID INVITE LINK!
+    // No need to change it to /lobby...
+    
     navigator.clipboard.writeText(window.location.href);
     alert("Game Link Copied! Share this with your friends.");
   };

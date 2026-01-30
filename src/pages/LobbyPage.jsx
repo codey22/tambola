@@ -89,7 +89,10 @@ const LobbyPage = () => {
 
         {!isConnected && (
            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded mb-4 text-sm text-center">
-             Connecting to server... <br/> (Ensure backend is running)
+             Connecting to server... <br/> 
+             <span className="text-xs mt-1 block">
+               (This may take a moment. If it fails, ensure the backend is running)
+             </span>
            </div>
         )}
 

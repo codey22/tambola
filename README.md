@@ -69,22 +69,29 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/m
 This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
 
 ### Deployment
-This app has a separate frontend and backend.
 
-#### Frontend (Vercel)
+#### Option 1: Render (Recommended - Easiest)
+Deploy both Frontend and Backend together as a single service.
 1. Push this code to GitHub.
-2. Import the project in Vercel.
-3. Add an Environment Variable in Vercel:
-   - `REACT_APP_BACKEND_URL`: The URL of your deployed backend (e.g., `https://your-backend.onrender.com`).
-4. Deploy.
+2. Go to [Render.com](https://render.com) and create a new **Web Service**.
+3. Connect your repository.
+4. Render will detect `render.yaml` automatically.
+5. Click **Create Web Service**.
+   - It will run `npm install && npm run build`.
+   - Then it will start `node server.js`.
+6. Your app will be live at `https://your-app-name.onrender.com`.
 
-#### Backend (Render/Railway/Heroku)
-Since Vercel is optimized for frontend, it is recommended to deploy the backend to a service that supports persistent Node.js servers like Render.
-1. Create a new Web Service on Render/Railway.
-2. Connect your GitHub repository.
-3. Set the Build Command to `npm install`.
-4. Set the Start Command to `node server.js`.
-5. Copy the deployed URL and use it for the frontend's `REACT_APP_BACKEND_URL`.
+#### Option 2: Split Deployment (Vercel + Render)
+Use this if you prefer hosting the Frontend on Vercel.
+1. **Backend (Render)**:
+   - Deploy as a Web Service.
+   - Build Command: `npm install`
+   - Start Command: `node server.js`
+   - Copy the deployed URL.
+2. **Frontend (Vercel)**:
+   - Import the project in Vercel.
+   - Add Environment Variable: `REACT_APP_BACKEND_URL` = Your Render Backend URL.
+   - Deploy.
 
 ### `npm run build` fails to minify
 

@@ -6,13 +6,20 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 In the project directory, you can run:
 
+### `npm run dev`
+
+Runs both the backend server and the frontend app concurrently.
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The backend runs on [http://localhost:5000](http://localhost:5000).
+
 ### `npm start`
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Runs only the frontend app in the development mode.
+Note: You need to run the backend separately if you use this command.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### `npm run server`
+
+Runs only the backend server.
 
 ### `npm test`
 
@@ -62,8 +69,22 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/m
 This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
 
 ### Deployment
+This app has a separate frontend and backend.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+#### Frontend (Vercel)
+1. Push this code to GitHub.
+2. Import the project in Vercel.
+3. Add an Environment Variable in Vercel:
+   - `REACT_APP_BACKEND_URL`: The URL of your deployed backend (e.g., `https://your-backend.onrender.com`).
+4. Deploy.
+
+#### Backend (Render/Railway/Heroku)
+Since Vercel is optimized for frontend, it is recommended to deploy the backend to a service that supports persistent Node.js servers like Render.
+1. Create a new Web Service on Render/Railway.
+2. Connect your GitHub repository.
+3. Set the Build Command to `npm install`.
+4. Set the Start Command to `node server.js`.
+5. Copy the deployed URL and use it for the frontend's `REACT_APP_BACKEND_URL`.
 
 ### `npm run build` fails to minify
 

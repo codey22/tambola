@@ -26,7 +26,7 @@ const GameRoomPage = () => {
   // Game State
   const [calledNumbers, setCalledNumbers] = useState([]);
   const [currentNumber, setCurrentNumber] = useState(null);
-  const [ticket, setTicket] = useState(state?.player?.ticket || []); 
+  const [tickets, setTickets] = useState(state?.player?.tickets || (state?.player?.ticket ? [state.player.ticket] : [])); 
   const [gameStatus, setGameStatus] = useState("WAITING"); 
   const [msg, setMsg] = useState("");
   const [winners, setWinners] = useState({});
@@ -78,7 +78,7 @@ const GameRoomPage = () => {
 
     socket.on("room_joined", ({ roomCode: rCode, isHost: hostStatus, player, players, gameStatus: gStatus, calledNumbers: cNumbers }) => {
       if (rCode === roomCode) {
-        setTicket(player.ticket);
+        setTickets(player.tickets || [player.ticket]);
         setIsHost(hostStatus);
         setGameStatus(gStatus || "WAITING");
         if (cNumbers) setCalledNumbers(cNumbers);
@@ -157,9 +157,14 @@ const GameRoomPage = () => {
     socket.emit("join_room", { roomCode, playerName: newPlayerName });
   };
 
-  const copyInviteLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    alert("Game Link Copied!");
+  const copyInviteLink = async () => {
+    const url = window.location.href;
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Game Link Copied! Share this URL with your friends to join.");
+    } catch (err) {
+      alert("Failed to copy link manually.");
+    }
   };
 
   const handleNumberClick = (num) => {
@@ -286,7 +291,7 @@ const GameRoomPage = () => {
         </div>
         <div className="flex gap-2">
             <button onClick={copyInviteLink} className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-bold transition">
-                Share Link 🔗
+                Copy Link 📋
             </button>
             {isHost && gameStatus === 'WAITING' && (
                 <button onClick={handleStartGame} className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg transition animate-pulse">
@@ -363,45 +368,52 @@ const GameRoomPage = () => {
             {/* TICKET AREA */}
             <div className="bg-white/10 backdrop-blur-md rounded-3xl p-4 md:p-8 border border-white/20 shadow-2xl overflow-x-auto">
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-white">Your Ticket</h2>
+                    <h2 className="text-2xl font-bold text-white">Your Tickets ({tickets.length})</h2>
                     <span className="text-xs bg-white/20 px-3 py-1 rounded-full text-indigo-100">Tap number to mark</span>
                 </div>
                 
-                <div className="min-w-[600px] bg-white rounded-xl border-4 border-indigo-900 overflow-hidden shadow-inner">
-                    {ticket.map((row, rIdx) => (
-                        <div key={rIdx} className="grid grid-cols-9 h-20 md:h-24 bg-indigo-50">
-                            {row.map((num, cIdx) => {
-                                const isMarked = markedNumbers.includes(num);
-                                const isCalled = calledNumbers.includes(num);
-                                const isCurrent = num === currentNumber;
-                                const isEmpty = num === 0;
-                                const isMissed = isCalled && !isMarked && !isCurrent;
+                <div className="flex flex-col gap-8">
+                    {tickets.map((ticket, tIdx) => (
+                        <div key={tIdx} className="space-y-2">
+                            <div className="text-indigo-200 text-sm font-bold uppercase tracking-wider pl-1">Ticket #{tIdx + 1}</div>
+                            <div className="min-w-[600px] bg-white rounded-xl border-4 border-indigo-900 overflow-hidden shadow-inner">
+                                {ticket.map((row, rIdx) => (
+                                    <div key={rIdx} className="grid grid-cols-9 h-20 md:h-24 bg-indigo-50">
+                                        {row.map((num, cIdx) => {
+                                            const isMarked = markedNumbers.includes(num);
+                                            const isCalled = calledNumbers.includes(num);
+                                            const isCurrent = num === currentNumber;
+                                            const isEmpty = num === 0;
+                                            const isMissed = isCalled && !isMarked && !isCurrent;
 
-                                return (
-                                    <div 
-                                        key={`${rIdx}-${cIdx}`}
-                                        onClick={() => !isEmpty && handleNumberClick(num)}
-                                        className={`
-                                            border-r border-b border-indigo-200 flex items-center justify-center text-2xl md:text-3xl font-black relative transition-all duration-200
-                                            ${isEmpty ? 'bg-indigo-100/50' : 'cursor-pointer hover:bg-indigo-100'}
-                                            ${isMarked ? 'bg-green-500 text-white !border-green-600 scale-95 rounded-lg m-1 shadow-inner' : ''}
-                                            ${isMissed ? 'bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed grayscale' : ''}
-                                            ${isCurrent && !isMarked ? 'bg-yellow-300 text-yellow-900 animate-pulse border-yellow-500 border-4' : ''}
-                                            ${!isEmpty && !isMarked && !isMissed && !isCurrent ? 'text-indigo-900' : ''}
-                                        `}
-                                    >
-                                        {isEmpty ? "" : num}
-                                        {isMarked && (
-                                            <motion.div 
-                                                initial={{ scale: 0 }} animate={{ scale: 1 }}
-                                                className="absolute inset-0 flex items-center justify-center text-green-200 opacity-30"
-                                            >
-                                                ✓
-                                            </motion.div>
-                                        )}
+                                            return (
+                                                <div 
+                                                    key={`${tIdx}-${rIdx}-${cIdx}`}
+                                                    onClick={() => !isEmpty && handleNumberClick(num)}
+                                                    className={`
+                                                        border-r border-b border-indigo-200 flex items-center justify-center text-2xl md:text-3xl font-black relative transition-all duration-200
+                                                        ${isEmpty ? 'bg-indigo-100/50' : 'cursor-pointer hover:bg-indigo-100'}
+                                                        ${isMarked ? 'bg-green-500 text-white !border-green-600 scale-95 rounded-lg m-1 shadow-inner' : ''}
+                                                        ${isMissed ? 'bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed grayscale' : ''}
+                                                        ${isCurrent && !isMarked ? 'bg-yellow-300 text-yellow-900 animate-pulse border-yellow-500 border-4' : ''}
+                                                        ${!isEmpty && !isMarked && !isMissed && !isCurrent ? 'text-indigo-900' : ''}
+                                                    `}
+                                                >
+                                                    {isEmpty ? "" : num}
+                                                    {isMarked && (
+                                                        <motion.div 
+                                                            initial={{ scale: 0 }} animate={{ scale: 1 }}
+                                                            className="absolute inset-0 flex items-center justify-center text-green-200 opacity-30"
+                                                        >
+                                                            ✓
+                                                        </motion.div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                );
-                            })}
+                                ))}
+                            </div>
                         </div>
                     ))}
                 </div>

@@ -20,8 +20,8 @@ const path = require('path');
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
-    socket.on('create_room', ({ playerName, maxPlayers }) => {
-        const room = gameManager.createRoom(socket.id, playerName, maxPlayers);
+    socket.on('create_room', ({ playerName, maxPlayers, ticketCount }) => {
+        const room = gameManager.createRoom(socket.id, playerName, maxPlayers, ticketCount);
         socket.join(room.code);
 
         socket.emit('room_created', {

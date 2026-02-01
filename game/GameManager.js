@@ -7,13 +7,14 @@ class GameManager {
         this.socketRoomMap = new Map(); // socketId -> roomCode
     }
 
-    createRoom(socketId, playerName, maxPlayers) {
+    createRoom(socketId, playerName, maxPlayers, ticketCount) {
         const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
         const room = {
             code: roomCode,
             hostId: socketId,
             maxPlayers: parseInt(maxPlayers) || 10,
+            ticketCount: parseInt(ticketCount) || 1,
             players: new Map(), // socketId -> Player
             calledNumbers: [],
             status: 'WAITING', // WAITING, PLAYING, ENDED, PAUSED
@@ -24,11 +25,11 @@ class GameManager {
         };
 
         // Add host as player
-        const hostTicket = generateTicket();
+        const hostTickets = Array.from({ length: room.ticketCount }, () => generateTicket());
         room.players.set(socketId, {
             id: socketId,
             name: playerName,
-            ticket: hostTicket,
+            tickets: hostTickets, // Array of tickets
             isHost: true
         });
 
@@ -44,11 +45,11 @@ class GameManager {
         if (room.status !== 'WAITING') return { error: "Game has already started. You cannot join now." };
         if (room.players.size >= room.maxPlayers) return { error: "This Room Is Full, You Can't Join To This Room" };
 
-        const ticket = generateTicket();
+        const tickets = Array.from({ length: room.ticketCount }, () => generateTicket());
         room.players.set(socketId, {
             id: socketId,
             name: playerName,
-            ticket: ticket,
+            tickets: tickets,
             isHost: false
         });
 
@@ -163,19 +164,32 @@ class GameManager {
         const player = room.players.get(socketId);
         if (!player) return { error: "Player not found" };
 
-        const checks = checkPatterns(player.ticket, room.calledNumbers);
+        // Check patterns on ALL tickets
+        let hasWon = false;
+        
+        // Handle single ticket (legacy) or multiple tickets
+        const tickets = player.tickets || [player.ticket];
 
-        // Map claim string to boolean check
-        const patternMap = {
-            'EARLY_FIVE': checks.earlyFive,
-            'TOP_ROW': checks.topRow,
-            'MIDDLE_ROW': checks.middleRow,
-            'BOTTOM_ROW': checks.bottomRow,
-            'FOUR_CORNERS': checks.fourCorners,
-            'FULL_HOUSE': checks.fullHouse
-        };
+        for (const ticket of tickets) {
+            const checks = checkPatterns(ticket, room.calledNumbers);
+            
+            // Map claim string to boolean check
+            const patternMap = {
+                'EARLY_FIVE': checks.earlyFive,
+                'TOP_ROW': checks.topRow,
+                'MIDDLE_ROW': checks.middleRow,
+                'BOTTOM_ROW': checks.bottomRow,
+                'FOUR_CORNERS': checks.fourCorners,
+                'FULL_HOUSE': checks.fullHouse
+            };
 
-        if (patternMap[pattern]) {
+            if (patternMap[pattern]) {
+                hasWon = true;
+                break;
+            }
+        }
+
+        if (hasWon) {
             room.winners[pattern] = { name: player.name, socketId };
 
             // Check if Game Over

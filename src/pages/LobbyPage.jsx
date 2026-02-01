@@ -12,6 +12,7 @@ const LobbyPage = () => {
   const [roomCode, setRoomCode] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [maxPlayers, setMaxPlayers] = useState(5);
+  const [ticketCount, setTicketCount] = useState(1);
   const [error, setError] = useState("");
   const [isConnected, setIsConnected] = useState(socket.connected);
 
@@ -60,7 +61,7 @@ const LobbyPage = () => {
         setError("Please enter your name.");
         return;
     }
-    socket.emit("create_room", { playerName, maxPlayers });
+    socket.emit("create_room", { playerName, maxPlayers, ticketCount });
   };
 
   const handleJoinRoom = () => {
@@ -117,20 +118,42 @@ const LobbyPage = () => {
             </div>
 
             {mode === "create" ? (
-                <div>
-                    <label className="block text-sm font-medium text-indigo-200 mb-1">Max Players</label>
-                    <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-xl px-4 py-2">
-                        <input
-                            type="range"
-                            min="2"
-                            max="20"
-                            value={maxPlayers}
-                            onChange={(e) => setMaxPlayers(e.target.value)}
-                            className="w-full accent-pink-500"
-                        />
-                        <span className="font-bold text-xl w-8 text-center">{maxPlayers}</span>
+                <>
+                    <div>
+                        <label className="block text-sm font-medium text-indigo-200 mb-1">Max Players</label>
+                        <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-xl px-4 py-2">
+                            <input
+                                type="range"
+                                min="2"
+                                max="20"
+                                value={maxPlayers}
+                                onChange={(e) => setMaxPlayers(e.target.value)}
+                                className="w-full accent-pink-500"
+                            />
+                            <span className="font-bold text-xl w-8 text-center">{maxPlayers}</span>
+                        </div>
                     </div>
-                </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-indigo-200 mb-1">Tickets Per Player</label>
+                        <div className="relative">
+                            <select 
+                                value={ticketCount}
+                                onChange={(e) => setTicketCount(Number(e.target.value))}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 transition appearance-none cursor-pointer"
+                            >
+                                {[...Array(10)].map((_, i) => (
+                                    <option key={i + 1} value={i + 1} className="bg-indigo-900 text-white">
+                                        {i + 1} Ticket{i > 0 ? 's' : ''}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-white">
+                                ▼
+                            </div>
+                        </div>
+                    </div>
+                </>
             ) : (
                 <div>
                     <label className="block text-sm font-medium text-indigo-200 mb-1">Room Code</label>

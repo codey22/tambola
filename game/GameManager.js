@@ -16,8 +16,11 @@ class GameManager {
             maxPlayers: parseInt(maxPlayers) || 10,
             players: new Map(), // socketId -> Player
             calledNumbers: [],
-            status: 'WAITING', // WAITING, PLAYING, ENDED
-            winners: {} // pattern -> { player: name, socketId: id }
+            status: 'WAITING', // WAITING, PLAYING, ENDED, PAUSED
+            winners: {}, // pattern -> { player: name, socketId: id }
+            autoCallInterval: null, // Timer reference
+            currentNumber: null,
+            lastCallTime: null
         };
 
         // Add host as player
@@ -38,7 +41,8 @@ class GameManager {
     joinRoom(roomCode, socketId, playerName) {
         const room = this.rooms.get(roomCode);
         if (!room) return { error: "Room not found" };
-        if (room.players.size >= room.maxPlayers) return { error: "Room is full" };
+        if (room.status !== 'WAITING') return { error: "Game has already started. You cannot join now." };
+        if (room.players.size >= room.maxPlayers) return { error: "This Room Is Full, You Can't Join To This Room" };
 
         const ticket = generateTicket();
         room.players.set(socketId, {
@@ -59,13 +63,61 @@ class GameManager {
         };
     }
 
-    startGame(roomCode, socketId) {
+    // Updated: Accepts callback to emit events to room
+    startGame(roomCode, socketId, emitCallback) {
         const room = this.rooms.get(roomCode);
         if (!room) return { error: "Room not found" };
         if (room.hostId !== socketId) return { error: "Only host can start game" };
 
         room.status = 'PLAYING';
+        
+        // Start auto-calling loop
+        this.startAutoCall(room, emitCallback);
+
         return { success: true };
+    }
+
+    startAutoCall(room, emitCallback) {
+        if (room.autoCallInterval) clearInterval(room.autoCallInterval);
+
+        // Immediate first call or wait? Usually wait 3s then start.
+        // Let's call immediately to start the flow.
+        this.performAutoCall(room, emitCallback);
+
+        room.autoCallInterval = setInterval(() => {
+            if (room.status === 'PLAYING') {
+                this.performAutoCall(room, emitCallback);
+            }
+        }, 10000); // 10 seconds
+    }
+
+    performAutoCall(room, emitCallback) {
+        // Generate next random number 1-90 not in calledNumbers
+        const allNums = Array.from({ length: 90 }, (_, i) => i + 1);
+        const available = allNums.filter(n => !room.calledNumbers.includes(n));
+
+        if (available.length === 0) {
+            // Game Over or Full House?
+            // Stop timer
+            if (room.autoCallInterval) clearInterval(room.autoCallInterval);
+            room.status = 'ENDED';
+             emitCallback(room.code, 'game_ended', { message: "All numbers called!" });
+            return;
+        }
+
+        const randomIndex = Math.floor(Math.random() * available.length);
+        const nextNumber = available[randomIndex];
+
+        room.calledNumbers.push(nextNumber);
+        room.currentNumber = nextNumber;
+        room.lastCallTime = Date.now();
+
+        // Emit to room
+        emitCallback(room.code, 'number_called', {
+            number: nextNumber,
+            calledNumbers: room.calledNumbers,
+            timeLeft: 10
+        });
     }
 
     pauseGame(roomCode, socketId) {
@@ -75,36 +127,30 @@ class GameManager {
         if (room.status !== 'PLAYING') return { error: "Game is not playing" };
 
         room.status = 'PAUSED';
+        // Clear interval
+        if (room.autoCallInterval) clearInterval(room.autoCallInterval);
+        
         return { success: true, status: room.status };
     }
 
-    resumeGame(roomCode, socketId) {
+    resumeGame(roomCode, socketId, emitCallback) {
         const room = this.rooms.get(roomCode);
         if (!room) return { error: "Room not found" };
         if (room.hostId !== socketId) return { error: "Only host can resume game" };
         if (room.status !== 'PAUSED') return { error: "Game is not paused" };
 
         room.status = 'PLAYING';
+        // Restart interval
+        this.startAutoCall(room, emitCallback);
+        
         return { success: true, status: room.status };
     }
-
+    
+    // Manual call is disabled now, but we keep the method or remove it?
+    // User said "Host should NOT manually call numbers".
+    // We can keep it but make it return error or do nothing if auto mode is on.
     callNumber(roomCode, socketId) {
-        const room = this.rooms.get(roomCode);
-        if (!room) return { error: "Room not found" };
-        if (room.hostId !== socketId) return { error: "Only host can call numbers" };
-        if (room.status === 'PAUSED') return { error: "Game is paused" };
-        if (room.status !== 'PLAYING') return { error: "Game not in progress" };
-
-        // Generate next random number 1-90 not in calledNumbers
-        const allNums = Array.from({ length: 90 }, (_, i) => i + 1);
-        const available = allNums.filter(n => !room.calledNumbers.includes(n));
-
-        if (available.length === 0) return { error: "All numbers called" };
-
-        const nextNum = available[Math.floor(Math.random() * available.length)];
-        room.calledNumbers.push(nextNum);
-
-        return { number: nextNum, calledNumbers: room.calledNumbers };
+         return { error: "Auto-calling is enabled. Manual calls disabled." };
     }
 
     claimWin(roomCode, socketId, pattern) {

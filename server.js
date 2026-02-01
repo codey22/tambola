@@ -59,31 +59,31 @@ io.on('connection', (socket) => {
     });
 
     socket.on('start_game', ({ roomCode }) => {
-        const result = gameManager.startGame(roomCode, socket.id);
+        // Callback function to allow GameManager to emit events asynchronously
+        const emitCallback = (rCode, event, data) => {
+            io.to(rCode).emit(event, data);
+        };
+
+        const result = gameManager.startGame(roomCode, socket.id, emitCallback);
         if (result.error) {
             socket.emit('error', { message: result.error });
             return;
         }
 
-        const room = gameManager.getRoom ? gameManager.getRoom(roomCode) : gameManager.rooms.get(roomCode); // fallback access
-        // Ideally should have a getter in manager but direct map access works in JS module singleton 
-
+        const room = gameManager.rooms.get(roomCode); 
+        
         io.to(roomCode).emit('game_started', {
             status: 'PLAYING'
         });
     });
 
     socket.on('call_number', ({ roomCode }) => {
+        // Manual calls are disabled in GameManager, this will return error
         const result = gameManager.callNumber(roomCode, socket.id);
         if (result.error) {
             socket.emit('error', { message: result.error });
             return;
         }
-
-        io.to(roomCode).emit('number_called', {
-            number: result.number,
-            calledNumbers: result.calledNumbers
-        });
     });
 
     socket.on('pause_game', ({ roomCode }) => {
@@ -99,7 +99,11 @@ io.on('connection', (socket) => {
     });
 
     socket.on('resume_game', ({ roomCode }) => {
-        const result = gameManager.resumeGame(roomCode, socket.id);
+        const emitCallback = (rCode, event, data) => {
+            io.to(rCode).emit(event, data);
+        };
+
+        const result = gameManager.resumeGame(roomCode, socket.id, emitCallback);
         if (result.error) {
             socket.emit('error', { message: result.error });
             return;

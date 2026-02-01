@@ -1,6 +1,7 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import socket from "../services/socket";
+import { motion } from "framer-motion";
 
 const LobbyPage = () => {
   const [searchParams] = useSearchParams();
@@ -10,8 +11,7 @@ const LobbyPage = () => {
 
   const [roomCode, setRoomCode] = useState("");
   const [playerName, setPlayerName] = useState("");
-  const [maxPlayers, setMaxPlayers] = useState(3);
-  const [maxTicket, setMaxTicket] = useState(1);
+  const [maxPlayers, setMaxPlayers] = useState(5);
   const [error, setError] = useState("");
   const [isConnected, setIsConnected] = useState(socket.connected);
 
@@ -56,19 +56,11 @@ const LobbyPage = () => {
       setError("Cannot create room: Disconnected from server.");
       return;
     }
-    // Generate room code is now handled by backend
-    // But UI shows "Generate Room Code" button which locally generated it before.
-    // We can just emit create_room immediately or if we want to keep the UX of "Generate" then "Start",
-    // we might need to adjust.
-    // For simplicity and better UX, "Start Game" can just create the room.
-    // Or we can pre-generate code locally? No, backend should handle source of truth.
-    // Let's make "Start Game" trigger the creation.
-    // The previous UX had "Generate Room Code" -> show code -> "Start Game".
-    // We can simulate this or just simplify to "Create Room" button.
-    // Let's simplify: User enters name (wait, Create Room didn't ask for name before? It defaulted to "Host").
-    // Let's ask for name even for Host or default to "Host".
-    
-    socket.emit("create_room", { playerName: "Host", maxPlayers, maxTicket });
+    if (!playerName) {
+        setError("Please enter your name.");
+        return;
+    }
+    socket.emit("create_room", { playerName, maxPlayers });
   };
 
   const handleJoinRoom = () => {
@@ -81,112 +73,98 @@ const LobbyPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6">
-        <h1 className="text-2xl font-bold text-center mb-6">
-          {mode === "create" ? "Create Room" : "Join Room"}
-        </h1>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 px-4 font-sans text-white">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-md bg-white/10 backdrop-blur-lg border border-white/20 rounded-3xl shadow-2xl p-8"
+      >
+        <div className="text-center mb-8">
+            <h1 className="text-4xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-pink-500">
+                Tambola
+            </h1>
+            <h2 className="text-xl font-medium text-indigo-200">
+                {mode === "create" ? "Create New Room" : "Join Game"}
+            </h2>
+        </div>
 
         {!isConnected && (
-           <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded mb-4 text-sm text-center">
+           <div className="bg-yellow-500/20 border border-yellow-400/50 text-yellow-200 px-4 py-3 rounded-xl mb-6 text-sm text-center animate-pulse">
              Connecting to server... <br/> 
-             <span className="text-xs mt-1 block">
-               (This may take a moment. If it fails, ensure the backend is running)
+             <span className="text-xs opacity-75">
+               (Please wait...)
              </span>
            </div>
         )}
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4 text-sm">
-            {error}
+          <div className="bg-red-500/20 border border-red-400/50 text-red-200 px-4 py-3 rounded-xl mb-6 text-sm font-semibold">
+            ⚠️ {error}
           </div>
         )}
 
-        {/* CREATE ROOM */}
-        {mode === "create" && (
-          <>
-            <label className="block text-sm font-medium mb-1">
-              Maximum Players
-            </label>
-            <select
-              value={maxPlayers}
-              onChange={(e) => setMaxPlayers(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 mb-4"
-            >
-              {[3, 5, 10, 15, 20].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-            <label className="block text-sm font-medium mb-1">
-              Tickets
-            </label>
-            <select
-              value={maxTicket}
-              onChange={(e) => setMaxTicket(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 mb-4"
-            >
-              {[1, 2, 3, 4, 5, 10, 15, 20].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
+        <div className="space-y-4">
+            {/* Player Name Input (For both modes now) */}
+            <div>
+                <label className="block text-sm font-medium text-indigo-200 mb-1">Your Name</label>
+                <input
+                    type="text"
+                    placeholder="Enter your name"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
+                />
+            </div>
+
+            {mode === "create" ? (
+                <div>
+                    <label className="block text-sm font-medium text-indigo-200 mb-1">Max Players</label>
+                    <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-xl px-4 py-2">
+                        <input
+                            type="range"
+                            min="2"
+                            max="20"
+                            value={maxPlayers}
+                            onChange={(e) => setMaxPlayers(e.target.value)}
+                            className="w-full accent-pink-500"
+                        />
+                        <span className="font-bold text-xl w-8 text-center">{maxPlayers}</span>
+                    </div>
+                </div>
+            ) : (
+                <div>
+                    <label className="block text-sm font-medium text-indigo-200 mb-1">Room Code</label>
+                    <input
+                        type="text"
+                        placeholder="e.g. ABC123"
+                        value={roomCode}
+                        onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-pink-500 transition font-mono tracking-widest uppercase"
+                    />
+                </div>
+            )}
 
             <button
-              onClick={handleCreateRoom}
-              disabled={!isConnected}
-              className={`w-full py-2 rounded-lg font-semibold transition ${
-                isConnected 
-                 ? "bg-green-600 text-white hover:bg-green-700" 
-                 : "bg-gray-400 text-gray-200 cursor-not-allowed"
-              }`}
+                onClick={mode === "create" ? handleCreateRoom : handleJoinRoom}
+                disabled={!isConnected}
+                className={`
+                    w-full py-4 rounded-xl font-bold text-lg shadow-lg transition transform hover:scale-105 active:scale-95
+                    ${isConnected 
+                        ? 'bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-400 hover:to-indigo-500 text-white' 
+                        : 'bg-gray-600 text-gray-400 cursor-not-allowed'}
+                `}
             >
-              Start Game (Create Room)
+                {mode === "create" ? "Create Room" : "Join Room"}
             </button>
-          </>
-        )}
-
-        {/* JOIN ROOM */}
-        {mode === "join" && (
-          <>
-            <label className="block text-sm font-medium mb-1">
-              Player Name
-            </label>
-            <input
-              type="text"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 mb-4"
-              placeholder="Enter your name"
-            />
-
-            <label className="block text-sm font-medium mb-1">
-              Room Code
-            </label>
-            <input
-              type="text"
-              value={roomCode}
-              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-              className="w-full border rounded-lg px-3 py-2 mb-6 tracking-widest"
-              placeholder="ABC123"
-            />
-
+            
             <button
-              onClick={handleJoinRoom}
-              disabled={!isConnected}
-              className={`w-full py-2 rounded-lg font-semibold transition ${
-                isConnected 
-                 ? "bg-indigo-600 text-white hover:bg-indigo-700" 
-                 : "bg-gray-400 text-gray-200 cursor-not-allowed"
-              }`}
+                onClick={() => navigate('/')}
+                className="w-full py-2 text-indigo-300 hover:text-white text-sm font-medium transition"
             >
-              Join Game
+                Cancel
             </button>
-          </>
-        )}
-      </div>
+        </div>
+      </motion.div>
     </div>
   );
 };

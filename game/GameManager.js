@@ -146,6 +146,17 @@ class GameManager {
         
         return { success: true, status: room.status };
     }
+
+    endGame(roomCode, socketId) {
+        const room = this.rooms.get(roomCode);
+        if (!room) return { error: "Room not found" };
+        if (room.hostId !== socketId) return { error: "Only host can end game" };
+
+        room.status = 'ENDED';
+        if (room.autoCallInterval) clearInterval(room.autoCallInterval);
+        
+        return { success: true, status: room.status };
+    }
     
     // Manual call is disabled now, but we keep the method or remove it?
     // User said "Host should NOT manually call numbers".

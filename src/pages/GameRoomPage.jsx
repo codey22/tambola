@@ -148,6 +148,11 @@ const GameRoomPage = () => {
   const handleStartGame = () => socket.emit("start_game", { roomCode });
   const pauseGame = () => socket.emit("pause_game", { roomCode });
   const resumeGame = () => socket.emit("resume_game", { roomCode });
+  const endGame = () => {
+      if(window.confirm("Are you sure you want to end the game for everyone?")) {
+          socket.emit("end_game", { roomCode });
+      }
+  };
   const claimWin = (pattern) => socket.emit("claim_win", { roomCode, pattern });
   const handleNewGame = () => window.location.href = "/";
 
@@ -280,32 +285,44 @@ const GameRoomPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-2 md:p-6 pb-32 text-white font-sans">
       
       {/* Top Bar */}
-      <div className="flex justify-between items-center mb-6 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-        <div>
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+        <div className="w-full md:w-auto flex justify-between md:block items-center">
            <h1 className="text-lg md:text-2xl font-bold flex items-center gap-2">
              <span>🎱</span> Tambola <span className="opacity-50">|</span> <span className="font-mono tracking-wider">{roomCode}</span>
            </h1>
-           <p className="text-xs md:text-sm text-indigo-200 mt-1">
-             {isHost ? "👑 Host" : "👤 Player"} : <span className="font-bold text-white">{playerName}</span>
+           <p className="md:hidden text-xs text-indigo-200">
+             {isHost ? "👑 Host" : "👤 Player"}
            </p>
         </div>
-        <div className="flex gap-2">
-            <button onClick={copyInviteLink} className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-bold transition">
+        
+        <div className="hidden md:block">
+            <p className="text-xs md:text-sm text-indigo-200 mt-1">
+                {isHost ? "👑 Host" : "👤 Player"} : <span className="font-bold text-white">{playerName}</span>
+            </p>
+        </div>
+
+        <div className="flex gap-2 flex-wrap justify-center w-full md:w-auto">
+            <button onClick={copyInviteLink} className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-bold transition flex-1 md:flex-none whitespace-nowrap">
                 Copy Link 📋
             </button>
             {isHost && gameStatus === 'WAITING' && (
-                <button onClick={handleStartGame} className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg transition animate-pulse">
+                <button onClick={handleStartGame} className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg transition animate-pulse flex-1 md:flex-none whitespace-nowrap">
                     Start Game ▶
                 </button>
             )}
             {isHost && gameStatus === 'PLAYING' && (
-                <button onClick={pauseGame} className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg transition">
+                <button onClick={pauseGame} className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg transition flex-1 md:flex-none whitespace-nowrap">
                     Pause ⏸
                 </button>
             )}
             {isHost && gameStatus === 'PAUSED' && (
-                <button onClick={resumeGame} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg transition">
+                <button onClick={resumeGame} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg transition flex-1 md:flex-none whitespace-nowrap">
                     Resume ▶
+                </button>
+            )}
+            {isHost && (gameStatus === 'PLAYING' || gameStatus === 'PAUSED') && (
+                <button onClick={endGame} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg transition flex-1 md:flex-none whitespace-nowrap">
+                    End Game ⏹
                 </button>
             )}
         </div>
@@ -327,15 +344,15 @@ const GameRoomPage = () => {
         <div className="lg:col-span-8 space-y-6">
             
             {/* Active Number & Timer Area */}
-            <div className="flex flex-col items-center justify-center py-8">
+            <div className="flex items-center justify-center gap-8 py-2">
                  <div className="relative">
                      {/* Timer Ring */}
-                     <svg className="w-48 h-48 transform -rotate-90">
-                         <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-indigo-900/50" />
-                         <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="8" fill="transparent" 
+                     <svg className="w-[100px] h-[100px] transform -rotate-90">
+                         <circle cx="50" cy="50" r="46" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-indigo-900/50" />
+                         <circle cx="50" cy="50" r="46" stroke="currentColor" strokeWidth="8" fill="transparent" 
                             className={`${timeLeft <= 3 ? 'text-red-500' : 'text-green-400'} transition-all duration-1000 ease-linear`}
-                            strokeDasharray={2 * Math.PI * 88}
-                            strokeDashoffset={2 * Math.PI * 88 * ((10 - timeLeft) / 10)}
+                            strokeDasharray={2 * Math.PI * 46}
+                            strokeDashoffset={2 * Math.PI * 46 * ((10 - timeLeft) / 10)}
                          />
                      </svg>
                      
@@ -347,9 +364,9 @@ const GameRoomPage = () => {
                                 initial={{ scale: 0, rotate: -180 }}
                                 animate={{ scale: 1, rotate: 0 }}
                                 exit={{ scale: 0 }}
-                                className="w-32 h-32 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-500 shadow-[0_0_30px_rgba(255,165,0,0.5)] flex items-center justify-center border-4 border-white"
+                                className="w-[80px] h-[80px] rounded-full bg-gradient-to-tr from-yellow-400 to-orange-500 shadow-[0_0_15px_rgba(255,165,0,0.5)] flex items-center justify-center border-4 border-white"
                             >
-                                <span className="text-6xl font-black text-white drop-shadow-md">
+                                <span className="text-4xl font-black text-white drop-shadow-md">
                                     {currentNumber ?? "?"}
                                 </span>
                             </motion.div>
@@ -357,28 +374,29 @@ const GameRoomPage = () => {
                      </div>
                  </div>
                  
-                 <div className="mt-4 text-center">
-                     <p className="text-indigo-200 text-sm uppercase tracking-widest font-bold mb-1">Time Remaining</p>
-                     <p className={`text-2xl font-mono font-bold ${timeLeft <= 3 ? 'text-red-400' : 'text-white'}`}>
+                 <div className="text-center">
+                     <p className="text-indigo-200 text-xs uppercase tracking-widest font-bold mb-1">Time</p>
+                     <p className={`text-xl font-mono font-bold ${timeLeft <= 3 ? 'text-red-400' : 'text-white'}`}>
                          {gameStatus === 'PLAYING' ? `00:${timeLeft.toString().padStart(2, '0')}` : '--:--'}
                      </p>
                  </div>
             </div>
 
             {/* TICKET AREA */}
-            <div className="bg-white/10 backdrop-blur-md rounded-3xl p-4 md:p-8 border border-white/20 shadow-2xl overflow-x-auto">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-white">Your Tickets ({tickets.length})</h2>
-                    <span className="text-xs bg-white/20 px-3 py-1 rounded-full text-indigo-100">Tap number to mark</span>
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-xl">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold text-white">Your Tickets ({tickets.length})</h2>
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded-full text-indigo-100">Tap to mark</span>
                 </div>
                 
-                <div className="flex flex-col gap-8">
+                <div className="flex flex-col gap-4">
                     {tickets.map((ticket, tIdx) => (
-                        <div key={tIdx} className="space-y-2">
-                            <div className="text-indigo-200 text-sm font-bold uppercase tracking-wider pl-1">Ticket #{tIdx + 1}</div>
-                            <div className="min-w-[600px] bg-white rounded-xl border-4 border-indigo-900 overflow-hidden shadow-inner">
+                        <div key={tIdx} className="space-y-1">
+                            <div className="text-indigo-200 text-xs font-bold uppercase tracking-wider pl-1">Ticket #{tIdx + 1}</div>
+                            {/* Mobile: Vertical (3 cols), Desktop: Horizontal (9 cols) */}
+                            <div className="bg-white rounded-lg border-2 border-indigo-900 overflow-hidden shadow-inner w-full max-w-full">
                                 {ticket.map((row, rIdx) => (
-                                    <div key={rIdx} className="grid grid-cols-9 h-20 md:h-24 bg-indigo-50">
+                                    <div key={rIdx} className="grid grid-cols-3 md:grid-cols-9 md:h-12 bg-indigo-50 border-b-2 md:border-b-0 md:border-b border-indigo-900/20 last:border-b-0">
                                         {row.map((num, cIdx) => {
                                             const isMarked = markedNumbers.includes(num);
                                             const isCalled = calledNumbers.includes(num);
@@ -391,12 +409,16 @@ const GameRoomPage = () => {
                                                     key={`${tIdx}-${rIdx}-${cIdx}`}
                                                     onClick={() => !isEmpty && handleNumberClick(num)}
                                                     className={`
-                                                        border-r border-b border-indigo-200 flex items-center justify-center text-2xl md:text-3xl font-black relative transition-all duration-200
+                                                        h-16 md:h-full md:aspect-auto
+                                                        border-r border-b border-indigo-200 flex items-center justify-center text-xl md:text-2xl font-black relative transition-all duration-200
                                                         ${isEmpty ? 'bg-indigo-100/50' : 'cursor-pointer hover:bg-indigo-100'}
-                                                        ${isMarked ? 'bg-green-500 text-white !border-green-600 scale-95 rounded-lg m-1 shadow-inner' : ''}
+                                                        ${isMarked ? 'bg-green-500 text-white !border-green-600 scale-95 rounded md:rounded-md m-0.5 md:m-1 shadow-inner' : ''}
                                                         ${isMissed ? 'bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed grayscale' : ''}
-                                                        ${isCurrent && !isMarked ? 'bg-yellow-300 text-yellow-900 animate-pulse border-yellow-500 border-4' : ''}
+                                                        ${isCurrent && !isMarked ? 'bg-yellow-300 text-yellow-900 animate-pulse border-yellow-500 border-2 md:border-4' : ''}
                                                         ${!isEmpty && !isMarked && !isMissed && !isCurrent ? 'text-indigo-900' : ''}
+                                                        /* Mobile Grid Borders Fixes */
+                                                        ${(cIdx + 1) % 3 === 0 ? 'border-r-0 md:border-r' : ''} 
+                                                        ${cIdx >= 6 ? 'border-b-0 md:border-b' : ''}
                                                     `}
                                                 >
                                                     {isEmpty ? "" : num}

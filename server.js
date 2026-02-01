@@ -99,8 +99,9 @@ io.on('connection', (socket) => {
     });
 
     socket.on('resume_game', ({ roomCode }) => {
-        const emitCallback = (rCode, event, data) => {
-            io.to(rCode).emit(event, data);
+        // Pass callback to emit 'number_called'
+        const emitCallback = (room, event, data) => {
+            io.to(room).emit(event, data);
         };
 
         const result = gameManager.resumeGame(roomCode, socket.id, emitCallback);
@@ -111,6 +112,18 @@ io.on('connection', (socket) => {
 
         io.to(roomCode).emit('game_resumed', {
             status: result.status
+        });
+    });
+
+    socket.on('end_game', ({ roomCode }) => {
+        const result = gameManager.endGame(roomCode, socket.id);
+        if (result.error) {
+            socket.emit('error', { message: result.error });
+            return;
+        }
+
+        io.to(roomCode).emit('game_ended', {
+            message: "Game Ended by Host"
         });
     });
 

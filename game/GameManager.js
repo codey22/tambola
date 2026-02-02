@@ -16,6 +16,7 @@ class GameManager {
             maxPlayers: parseInt(maxPlayers) || 10,
             ticketCount: parseInt(ticketCount) || 1,
             players: new Map(), // socketId -> Player
+            disconnectedPlayers: new Map(), // playerName -> { playerObj, disconnectTime }
             calledNumbers: [],
             status: 'WAITING', // WAITING, PLAYING, ENDED, PAUSED
             winners: {}, // pattern -> { player: name, socketId: id }
@@ -42,37 +43,57 @@ class GameManager {
     joinRoom(roomCode, socketId, playerName) {
         const room = this.rooms.get(roomCode);
         if (!room) return { error: "Room not found" };
-        if (room.status !== 'WAITING') return { error: "Game has already started. You cannot join now." };
-        if (room.players.size >= room.maxPlayers) return { error: "This Room Is Full, You Can't Join To This Room" };
+
+        // Check Rejoin Eligibility
+        if (room.disconnectedPlayers.has(playerName)) {
+            const disconnectedData = room.disconnectedPlayers.get(playerName);
+            const timeElapsed = Date.now() - disconnectedData.disconnectTime;
+
+            if (timeElapsed <= 15000) { // 15 seconds window
+                 // Rejoin allowed
+                 const player = disconnectedData.player;
+                 player.id = socketId; // Update socket ID
+                 
+                 room.players.set(socketId, player);
+                 room.disconnectedPlayers.delete(playerName);
+                 this.socketRoomMap.set(socketId, roomCode);
+                 
+                 return { room, player, gameState: { status: room.status, calledNumbers: room.calledNumbers } };
+            } else {
+                // Time expired
+                room.disconnectedPlayers.delete(playerName); // Clean up
+                return { error: "Rejoin time expired. You cannot join this game anymore." };
+            }
+        }
+
+        if (room.status !== 'WAITING') return { error: "Game already started" };
+        if (room.players.size >= room.maxPlayers) return { error: "Room is full" };
+
+        // Check for duplicate names
+        for (const p of room.players.values()) {
+            if (p.name === playerName) return { error: "Name taken" };
+        }
 
         const tickets = Array.from({ length: room.ticketCount }, () => generateTicket());
-        room.players.set(socketId, {
+        const player = {
             id: socketId,
             name: playerName,
             tickets: tickets,
             isHost: false
-        });
-
-        this.socketRoomMap.set(socketId, roomCode);
-        return {
-            room,
-            player: room.players.get(socketId),
-            gameState: {
-                status: room.status,
-                calledNumbers: room.calledNumbers
-            }
         };
+
+        room.players.set(socketId, player);
+        this.socketRoomMap.set(socketId, roomCode);
+
+        return { room, player, gameState: { status: room.status, calledNumbers: room.calledNumbers } };
     }
 
-    // Updated: Accepts callback to emit events to room
     startGame(roomCode, socketId, emitCallback) {
         const room = this.rooms.get(roomCode);
         if (!room) return { error: "Room not found" };
         if (room.hostId !== socketId) return { error: "Only host can start game" };
 
         room.status = 'PLAYING';
-        
-        // Start auto-calling loop
         this.startAutoCall(room, emitCallback);
 
         return { success: true };
@@ -81,8 +102,7 @@ class GameManager {
     startAutoCall(room, emitCallback) {
         if (room.autoCallInterval) clearInterval(room.autoCallInterval);
 
-        // Immediate first call or wait? Usually wait 3s then start.
-        // Let's call immediately to start the flow.
+        // Call immediately to start
         this.performAutoCall(room, emitCallback);
 
         room.autoCallInterval = setInterval(() => {
@@ -93,16 +113,13 @@ class GameManager {
     }
 
     performAutoCall(room, emitCallback) {
-        // Generate next random number 1-90 not in calledNumbers
         const allNums = Array.from({ length: 90 }, (_, i) => i + 1);
         const available = allNums.filter(n => !room.calledNumbers.includes(n));
 
         if (available.length === 0) {
-            // Game Over or Full House?
-            // Stop timer
             if (room.autoCallInterval) clearInterval(room.autoCallInterval);
             room.status = 'ENDED';
-             emitCallback(room.code, 'game_ended', { message: "All numbers called!" });
+            emitCallback(room.code, 'game_ended', { message: "All numbers called!" });
             return;
         }
 
@@ -113,7 +130,6 @@ class GameManager {
         room.currentNumber = nextNumber;
         room.lastCallTime = Date.now();
 
-        // Emit to room
         emitCallback(room.code, 'number_called', {
             number: nextNumber,
             calledNumbers: room.calledNumbers,
@@ -128,7 +144,6 @@ class GameManager {
         if (room.status !== 'PLAYING') return { error: "Game is not playing" };
 
         room.status = 'PAUSED';
-        // Clear interval
         if (room.autoCallInterval) clearInterval(room.autoCallInterval);
         
         return { success: true, status: room.status };
@@ -141,7 +156,6 @@ class GameManager {
         if (room.status !== 'PAUSED') return { error: "Game is not paused" };
 
         room.status = 'PLAYING';
-        // Restart interval
         this.startAutoCall(room, emitCallback);
         
         return { success: true, status: room.status };
@@ -157,10 +171,7 @@ class GameManager {
         
         return { success: true, status: room.status };
     }
-    
-    // Manual call is disabled now, but we keep the method or remove it?
-    // User said "Host should NOT manually call numbers".
-    // We can keep it but make it return error or do nothing if auto mode is on.
+
     callNumber(roomCode, socketId) {
          return { error: "Auto-calling is enabled. Manual calls disabled." };
     }
@@ -169,22 +180,17 @@ class GameManager {
         const room = this.rooms.get(roomCode);
         if (!room) return { error: "Room not found" };
 
-        // Check if already claimed
         if (room.winners[pattern]) return { error: "Pattern already claimed" };
 
         const player = room.players.get(socketId);
         if (!player) return { error: "Player not found" };
 
-        // Check patterns on ALL tickets
         let hasWon = false;
-        
-        // Handle single ticket (legacy) or multiple tickets
         const tickets = player.tickets || [player.ticket];
 
         for (const ticket of tickets) {
             const checks = checkPatterns(ticket, room.calledNumbers);
             
-            // Map claim string to boolean check
             const patternMap = {
                 'EARLY_FIVE': checks.earlyFive,
                 'TOP_ROW': checks.topRow,
@@ -203,7 +209,6 @@ class GameManager {
         if (hasWon) {
             room.winners[pattern] = { name: player.name, socketId };
 
-            // Check if Game Over
             if (pattern === 'FULL_HOUSE') {
                 room.status = 'ENDED';
             }
@@ -220,15 +225,34 @@ class GameManager {
 
         const room = this.rooms.get(roomCode);
         if (room) {
-            room.players.delete(socketId);
-            this.socketRoomMap.delete(socketId);
+            const player = room.players.get(socketId);
+            
+            if (player) {
+                // If game is in progress (PLAYING/PAUSED), move to disconnected list
+                if (room.status === 'PLAYING' || room.status === 'PAUSED') {
+                    room.disconnectedPlayers.set(player.name, {
+                        player: player,
+                        disconnectTime: Date.now()
+                    });
+                }
+                
+                room.players.delete(socketId);
+                this.socketRoomMap.delete(socketId);
 
-            // If host left, maybe assign new host or end game? 
-            // For simplicity, if empty, delete room.
-            if (room.players.size === 0) {
-                this.rooms.delete(roomCode);
+                // If room is empty and no disconnected players waiting, delete it
+                if (room.players.size === 0 && room.disconnectedPlayers.size === 0) {
+                    this.rooms.delete(roomCode);
+                } else if (room.players.size === 0) {
+                     // Cleanup after 20s if only disconnected players remain
+                     setTimeout(() => {
+                         if (this.rooms.has(roomCode) && this.rooms.get(roomCode).players.size === 0) {
+                             this.rooms.delete(roomCode);
+                         }
+                     }, 20000); // 20s cleanup
+                }
+                
+                return { roomCode, room };
             }
-            return { roomCode, room };
         }
     }
 }

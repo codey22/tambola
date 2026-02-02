@@ -141,6 +141,15 @@ io.on('connection', (socket) => {
         });
     });
 
+    socket.on('send_message', ({ roomCode, message, playerName }) => {
+        // Broadcast message to everyone in the room
+        io.to(roomCode).emit('receive_message', {
+            sender: playerName,
+            message: message,
+            timestamp: new Date().toISOString()
+        });
+    });
+
     socket.on('disconnect', () => {
         const result = gameManager.handleDisconnect(socket.id);
         if (result && result.room) {

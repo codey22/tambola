@@ -51,25 +51,25 @@ const LandingPage = () => {
         transition={{ delay: 0.4 }}
         className="mt-12 w-full max-w-2xl bg-white/5 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-white/10 shadow-2xl"
       >
-        <h2 className="text-xl md:text-2xl font-bold mb-4 text-indigo-200 flex items-center gap-2">
+        <h2 className="text-xl md:text-2xl font-bold mb-4 text-white flex items-center gap-2">
           <span>📜</span> Game Rules
         </h2>
 
-        <ul className="space-y-3 text-sm md:text-base text-gray-300">
+        <ul className="space-y-3 text-sm md:text-base text-white font-bold">
           <li className="flex gap-2">
-            <span className="text-pink-500 font-bold">1.</span>
+            <span className="text-pink-500 font-extrabold">1.</span>
             <span>Numbers are called <strong>automatically every 10 seconds</strong>.</span>
           </li>
           <li className="flex gap-2">
-            <span className="text-pink-500 font-bold">2.</span>
+            <span className="text-pink-500 font-extrabold">2.</span>
             <span><strong>Speed is Key!</strong> You must mark the number while it is active.</span>
           </li>
           <li className="flex gap-2">
-            <span className="text-pink-500 font-bold">3.</span>
+            <span className="text-pink-500 font-extrabold">3.</span>
             <span>If you miss marking a number, it gets <strong>locked forever</strong>!</span>
           </li>
           <li className="flex gap-2">
-            <span className="text-pink-500 font-bold">4.</span>
+            <span className="text-pink-500 font-extrabold">4.</span>
             <span>Claim winning patterns (Early 5, Rows, Full House) to win.</span>
           </li>
         </ul>

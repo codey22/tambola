@@ -30,6 +30,7 @@ const GameRoomPage = () => {
   const [tickets, setTickets] = useState(state?.player?.tickets || (state?.player?.ticket ? [state.player.ticket] : [])); 
   const [gameStatus, setGameStatus] = useState("WAITING"); 
   const [msg, setMsg] = useState("");
+  const [notificationMsg, setNotificationMsg] = useState("");
   const [winners, setWinners] = useState({});
   const [playersList, setPlayersList] = useState([]);
   
@@ -58,6 +59,14 @@ const GameRoomPage = () => {
         chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Notification Timer
+  useEffect(() => {
+    if (notificationMsg) {
+      const timer = setTimeout(() => setNotificationMsg(""), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [notificationMsg]);
 
   // Audio Helpers
   const speakNumber = useCallback((num) => {
@@ -147,6 +156,9 @@ const GameRoomPage = () => {
 
     socket.on("receive_message", (message) => {
         setMessages(prev => [...prev, message]);
+        if (message.sender !== playerName) {
+            setNotificationMsg(`New message from ${message.sender}`);
+        }
     });
     
     socket.on("game_ended", ({ message }) => {
@@ -185,7 +197,7 @@ const GameRoomPage = () => {
       socket.off("claim_rejected");
       socket.off("error");
     };
-  }, [roomCode, isMuted, speakNumber, speakText]);
+  }, [roomCode, isMuted, speakNumber, speakText, playerName]);
 
   // Timer Effect
   useEffect(() => {
@@ -299,7 +311,7 @@ const GameRoomPage = () => {
     const playerScores = {};
     playersList.forEach(p => playerScores[p.name] = 0);
     Object.values(winners).forEach(w => {
-        if(playerScores[w.name] !== undefined) playerScores[w.name] += 100;
+        if(playerScores[w.name] !== undefined) playerScores[w.name] += 10;
     });
 
     return (
@@ -348,8 +360,22 @@ const GameRoomPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-2 md:p-6 pb-32 text-white font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 p-2 md:p-6 pb-32 text-white font-sans relative">
       
+      {/* Chat Notification */}
+      <AnimatePresence>
+        {notificationMsg && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50, x: "-50%" }} 
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: -50, x: "-50%" }}
+            className="fixed top-4 left-1/2 z-50 bg-indigo-600 text-white px-6 py-3 rounded-full shadow-2xl font-bold flex items-center gap-3 border-2 border-indigo-400 min-w-[300px] justify-center"
+          >
+            <span className="text-xl">💬</span> {notificationMsg}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Top Bar */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
         <div className="w-full md:w-auto flex justify-between md:block items-center">

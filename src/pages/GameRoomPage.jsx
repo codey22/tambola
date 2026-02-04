@@ -34,7 +34,19 @@ const GameRoomPage = () => {
   const [winners, setWinners] = useState({});
   const [playersList, setPlayersList] = useState([]);
   
-  // Chat State
+  // Mobile & Chat State
+  const [showChat, setShowChat] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  // Check orientation
+  useEffect(() => {
+    const checkOrientation = () => {
+        setIsPortrait(window.innerHeight > window.innerWidth && window.innerWidth < 768);
+    };
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    return () => window.removeEventListener('resize', checkOrientation);
+  }, []);
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const chatContainerRef = useRef(null);
@@ -281,6 +293,17 @@ const GameRoomPage = () => {
       );
   }
 
+  // Enforce Landscape on Mobile
+  if (isPortrait) {
+      return (
+          <div className="fixed inset-0 z-50 bg-indigo-900 text-white flex flex-col items-center justify-center p-8 text-center">
+              <div className="text-6xl mb-6 animate-bounce">📱↻</div>
+              <h1 className="text-3xl font-bold mb-4">Please Rotate Your Device</h1>
+              <p className="text-indigo-200">For the best Tambola experience, please play in landscape mode.</p>
+          </div>
+      );
+  }
+
   // Render Join Modal
   if (showJoinModal) {
     return (
@@ -394,12 +417,21 @@ const GameRoomPage = () => {
         </div>
 
         <div className="flex gap-2 flex-wrap justify-center w-full md:w-auto">
+            {/* Mobile Chat Toggle */}
+            <button 
+                onClick={() => setShowChat(!showChat)}
+                className="md:hidden bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold relative"
+            >
+                💬 Chat
+                {messages.length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>}
+            </button>
+
             {/* Audio Toggle */}
             <button 
                 onClick={() => setIsMuted(!isMuted)} 
                 className={`px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-2 ${isMuted ? 'bg-red-500/50 text-white' : 'bg-white/20 hover:bg-white/30 text-white'}`}
             >
-                {isMuted ? '🔇 Muted' : '🔊 Audio On'}
+                {isMuted ? '🔇' : '🔊'}
             </button>
 
             <button onClick={copyInviteLink} className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl text-sm font-bold transition flex-1 md:flex-none whitespace-nowrap">
@@ -407,7 +439,7 @@ const GameRoomPage = () => {
             </button>
             {isHost && gameStatus === 'WAITING' && (
                 <button onClick={handleStartGame} className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg transition animate-pulse flex-1 md:flex-none whitespace-nowrap">
-                    Start Game ▶
+                    Start ▶
                 </button>
             )}
             {isHost && gameStatus === 'PLAYING' && (
@@ -422,7 +454,7 @@ const GameRoomPage = () => {
             )}
             {isHost && (gameStatus === 'PLAYING' || gameStatus === 'PAUSED') && (
                 <button onClick={endGame} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg transition flex-1 md:flex-none whitespace-nowrap">
-                    End Game ⏹
+                    End ⏹
                 </button>
             )}
         </div>
@@ -493,10 +525,10 @@ const GameRoomPage = () => {
                     {tickets.map((ticket, tIdx) => (
                         <div key={tIdx} className="space-y-1">
                             <div className="text-indigo-200 text-xs font-bold uppercase tracking-wider pl-1">Ticket #{tIdx + 1}</div>
-                            {/* Mobile: Vertical (3 cols), Desktop: Horizontal (9 cols) */}
+                            {/* Mobile: Always 9 cols, adjusted size */}
                             <div className="bg-white rounded-lg border-2 border-indigo-900 overflow-hidden shadow-inner w-full max-w-full">
                                 {ticket.map((row, rIdx) => (
-                                    <div key={rIdx} className="grid grid-cols-3 md:grid-cols-9 md:h-12 bg-indigo-50 border-b-2 md:border-b-0 md:border-b border-indigo-900/20 last:border-b-0">
+                                    <div key={rIdx} className="grid grid-cols-9 h-10 md:h-12 bg-indigo-50 border-b border-indigo-900/20 last:border-b-0">
                                         {row.map((num, cIdx) => {
                                             const isMarked = markedNumbers.includes(num);
                                             const isCalled = calledNumbers.includes(num);
@@ -509,15 +541,13 @@ const GameRoomPage = () => {
                                                     key={`${tIdx}-${rIdx}-${cIdx}`}
                                                     onClick={() => !isEmpty && handleNumberClick(num)}
                                                     className={`
-                                                        h-16 md:h-full md:aspect-auto
-                                                        border-r border-b border-indigo-200 flex items-center justify-center text-xl md:text-2xl font-black relative transition-all duration-200
+                                                        h-full aspect-auto
+                                                        border-r border-indigo-200 flex items-center justify-center text-sm md:text-2xl font-black relative transition-all duration-200
                                                         ${isEmpty ? 'bg-white' : 'cursor-pointer'}
                                                         ${!isEmpty && !isMarked && !isMissed ? 'bg-yellow-200 text-indigo-900' : ''}
-                                                        ${isMarked ? 'bg-green-500 text-white border-green-600 rounded md:rounded-md m-0.5 md:m-1 shadow-inner' : ''}
+                                                        ${isMarked ? 'bg-green-500 text-white border-green-600 rounded-sm md:rounded-md m-0.5 md:m-1 shadow-inner' : ''}
                                                         ${isMissed ? 'bg-gray-300 text-gray-500 opacity-50 cursor-not-allowed grayscale' : ''}
-                                                        /* Mobile Grid Borders Fixes */
-                                                        ${(cIdx + 1) % 3 === 0 ? 'border-r-0 md:border-r' : ''} 
-                                                        ${cIdx >= 6 ? 'border-b-0 md:border-b' : ''}
+                                                        last:border-r-0
                                                     `}
                                                 >
                                                     {isEmpty ? "" : num}
@@ -564,7 +594,15 @@ const GameRoomPage = () => {
         </div>
 
         {/* RIGHT COLUMN: Sidebar (Players, Chat, History) */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className={`lg:col-span-4 space-y-6 ${showChat ? 'fixed inset-0 z-40 bg-indigo-900 p-4 pt-20 overflow-y-auto' : 'hidden lg:block'}`}>
+            
+            {/* Mobile Close Button */}
+            <button 
+                onClick={() => setShowChat(false)}
+                className="lg:hidden absolute top-4 right-4 bg-white/10 p-2 rounded-full text-white"
+            >
+                ✕ Close
+            </button>
             
             {/* Players List */}
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">

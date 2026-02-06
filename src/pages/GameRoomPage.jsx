@@ -126,6 +126,7 @@ const GameRoomPage = () => {
 
     socket.on("room_joined", ({ roomCode: rCode, isHost: hostStatus, player, players, gameStatus: gStatus, calledNumbers: cNumbers }) => {
       if (rCode === roomCode) {
+        setPlayerName(player.name);
         setTickets(player.tickets || [player.ticket]);
         setIsHost(hostStatus);
         setGameStatus(gStatus || "WAITING");
@@ -406,7 +407,7 @@ const GameRoomPage = () => {
              <span>🎱</span> Tambola <span className="opacity-50">|</span> <span className="font-mono tracking-wider">{roomCode}</span>
            </h1>
            <p className="md:hidden text-xs text-indigo-200">
-             {isHost ? "👑 Host" : "👤 Player"}
+             {isHost ? "👑 Host" : "👤 Player"} : <span className="font-bold text-white">{playerName}</span>
            </p>
         </div>
         
@@ -420,7 +421,7 @@ const GameRoomPage = () => {
             {/* Mobile Chat Toggle */}
             <button 
                 onClick={() => setShowChat(!showChat)}
-                className="md:hidden bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold relative"
+                className="lg:hidden bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold relative"
             >
                 💬 Chat
                 {messages.length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>}

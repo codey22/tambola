@@ -28,6 +28,19 @@ Unlike traditional physical games, this app handles everything for you:
 
 ---
 
+## 🕹️ How It Works (For Players)
+Getting started with Tambola is easy! Here is the step-by-step journey:
+
+1. **Create or Join**: On the landing page, click **Create Room** if you want to host, or **Join Room** if you have a code from a friend.
+2. **Setup (Host Only)**: If you are the host, you can choose how many people can join and how many tickets each person gets.
+3. **Invite Friends**: Copy the room code or invite link and send it to your friends.
+4. **Start the Fun**: Once everyone is in, the host clicks **Start**. 
+5. **Mark Your Ticket**: Every 10 seconds, a new number appears in the big yellow ball. **Tap the number on your ticket** as soon as you see it!
+6. **Claim Your Prize**: If you complete a row or a pattern, click the corresponding button (like "Early 5" or "Full House") immediately to claim your win!
+7. **Win & Celebrate**: The first person to claim the pattern correctly wins. The game ends when someone claims a "Full House".
+
+---
+
 ## ✨ Key Features
 - **Real-Time Multiplayer**: Create or join rooms with a unique 6-character code.
 - **Automated Host Controls**: The host can pause, resume, or end the game at any time.

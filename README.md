@@ -1,98 +1,158 @@
-# Getting Started with Create React App
+# 🎱 Tambola: The Next-Gen Multiplayer Housie
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Welcome to **Tambola**, a high-energy, real-time multiplayer version of the classic Indian game "Housie" or "Bingo". Built with modern web technologies, this project offers a seamless, automated, and competitive experience for players worldwide.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 📖 Table of Contents
+1. [Overview (Non-Technical)](#-overview-non-technical)
+2. [How It Works (For Players)](#-how-it-works-for-players)
+3. [Key Features](#-key-features)
+4. [Tech Stack](#-tech-stack)
+5. [Getting Started](#-getting-started)
+6. [Project Structure](#-project-structure)
+7. [How It Works (Technical Flow)](#-how-it-works-technical-flow)
+8. [Game Rules & Logic](#-game-rules--logic)
+9. [Socket.io API Reference](#-socketio-api-reference)
 
-### `npm run dev`
+---
 
-Runs both the backend server and the frontend app concurrently.
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-The backend runs on [http://localhost:5000](http://localhost:5000).
+## 🌟 Overview (Non-Technical)
+Tambola is a digital version of the popular social game where players mark numbers on a ticket as they are called out. 
 
-### `npm start`
+**Wait, what makes this version different?**
+Unlike traditional physical games, this app handles everything for you:
+- **Automatic Calling**: No more manual number drawing. The server calls a new number every 10 seconds.
+- **Speed Matters**: You must mark the number while it's active. If you miss it, you can't mark it later!
+- **Instant Win Validation**: No more arguments over "Full House". The system verifies wins instantly based on the numbers called.
 
-Runs only the frontend app in the development mode.
-Note: You need to run the backend separately if you use this command.
+---
 
-### `npm run server`
+## ✨ Key Features
+- **Real-Time Multiplayer**: Create or join rooms with a unique 6-character code.
+- **Automated Host Controls**: The host can pause, resume, or end the game at any time.
+- **Interactive Tickets**: Beautiful UI with mobile-responsive design (Landscape mode optimized).
+- **Game Chat**: Real-time communication with other players in the room.
+- **Voice Notifications**: Built-in text-to-speech announces numbers as they are called.
+- **Scoreboard**: Automatic point calculation and winner tracking.
 
-Runs only the backend server.
+---
 
-### `npm test`
+## 🛠 Tech Stack
+| Component | Technology |
+|---|---|
+| **Frontend** | React (v19), Framer Motion (Animations), Tailwind CSS (Styling) |
+| **Backend** | Node.js, Express |
+| **Real-time** | Socket.io |
+| **Utilities** | Canvas-confetti (UI effects) |
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## 🚀 Getting Started
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Prerequisites
+- Node.js (>= 18.0.0)
+- npm or yarn
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd tambola
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+   *This command runs both the frontend and the backend simultaneously using `concurrently`.*
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## 📁 Project Structure
+```text
+tambola/
+├── backend/            # (Optional/Legacy) Secondary backend logic
+├── game/               # Core Game Logic
+│   └── GameManager.js  # Central authority for rooms, players, and state
+├── public/             # Static assets
+├── src/                # Frontend React Code
+│   ├── components/     # Reusable UI components
+│   ├── pages/          # Full page views (Landing, Lobby, GameRoom)
+│   ├── services/       # Socket.io client setup
+│   └── utils/          # Frontend helpers
+├── utils/              # Shared Backend Utilities
+│   ├── ticketGenerator.js # Logic for generating 3x9 tickets
+│   └── patternChecker.js  # Logic for validating winning patterns
+├── server.js           # Main Entry Point (Express + Socket.io)
+└── package.json        # Dependencies and scripts
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+---
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 🔄 How It Works (Technical Flow)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### 1. User Journey
+1. **Landing Page**: User chooses to "Create" or "Join" a room.
+2. **Lobby Page**: Host configures game settings (max players, tickets per player). Players enter their names and join the room.
+3. **Game Room**: The main arena where the ticket is displayed, numbers are called, and chat happens.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 2. Socket.io Event Flow
+The game relies on a series of real-time events between the client and server:
 
-## Learn More
+- **Room Setup**: `create_room` (Client) -> `room_created` (Server)
+- **Joining**: `join_room` -> `room_joined` + `player_joined` (broadcast to others)
+- **Game Control**: `start_game` -> `game_started`
+- **Number Calling**: Every 10s, the server emits `number_called`.
+- **Winning**: `claim_win` -> `win_announced` (if valid) or `claim_rejected` (if "bogus").
+- **Chat**: `send_message` -> `receive_message`.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+---
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## ⚖️ Game Rules & Logic
 
-### Code Splitting
+### Ticket Generation
+Tickets are generated using a standard **3x9 grid algorithm**:
+- **Columns**: 9 columns (1-9, 10-19, ..., 80-90).
+- **Numbers per Column**: At least 1 number in every column.
+- **Numbers per Row**: Exactly 5 numbers per row.
+- **Total Numbers**: 15 numbers per ticket.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Winning Patterns
+1. **Early Five**: First player to mark any 5 numbers.
+2. **Top Row**: All 5 numbers in the top row marked.
+3. **Middle Row**: All 5 numbers in the middle row marked.
+4. **Bottom Row**: All 5 numbers in the bottom row marked.
+5. **4 Corners**: First and last numbers of the Top and Bottom rows.
+6. **Full House**: All 15 numbers on the ticket marked.
 
-### Analyzing the Bundle Size
+> [!IMPORTANT]
+> **Anti-Cheat Logic**: The server tracks which numbers have been called. If a player tries to claim a win with a number that hasn't been announced yet, the server rejects it as a "Bogus Claim".
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+---
 
-### Making a Progressive Web App
+## 📡 Socket.io API Reference
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### Client-to-Server
+| Event | Payload | Description |
+|---|---|---|
+| `create_room` | `{playerName, maxPlayers, ticketCount}` | Creates a new room and returns a room code. |
+| `join_room` | `{roomCode, playerName}` | Joins an existing room. |
+| `start_game` | `{roomCode}` | (Host Only) Starts the auto-call timer. |
+| `claim_win` | `{roomCode, pattern}` | Player claims a winning pattern. |
+| `send_message`| `{roomCode, message, playerName}`| Sends a chat message. |
 
-### Advanced Configuration
+### Server-to-Client
+| Event | Payload | Description |
+|---|---|---|
+| `number_called`| `{number, calledNumbers, timeLeft}`| Announces a new number. |
+| `win_announced`| `{pattern, winner, gameStatus}`| Announces a winner to the entire room. |
+| `game_paused`  | `{status}` | Notifies that the host paused the game. |
+| `player_left`  | `{players}` | Updates the player list when someone disconnects. |
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+---
 
-### Deployment
-
-#### Option 1: Render (Recommended - Easiest)
-Deploy both Frontend and Backend together as a single service.
-1. Push this code to GitHub.
-2. Go to [Render.com](https://render.com) and create a new **Web Service**.
-3. Connect your repository.
-4. Render will detect `render.yaml` automatically.
-5. Click **Create Web Service**.
-   - It will run `npm install && npm run build`.
-   - Then it will start `node server.js`.
-6. Your app will be live at `https://your-app-name.onrender.com`.
-
-#### Option 2: Split Deployment (Vercel + Render)
-Use this if you prefer hosting the Frontend on Vercel.
-1. **Backend (Render)**:
-   - Deploy as a Web Service.
-   - Build Command: `npm install`
-   - Start Command: `node server.js`
-   - Copy the deployed URL.
-2. **Frontend (Vercel)**:
-   - Import the project in Vercel.
-   - Add Environment Variable: `REACT_APP_BACKEND_URL` = Your Render Backend URL.
-   - Deploy.
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Developed with ❤️ for the Tambola Community. Happy Gaming! 🎱
